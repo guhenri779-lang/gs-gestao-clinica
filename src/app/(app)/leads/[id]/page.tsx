@@ -10,11 +10,23 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const { data: lead } = await ctx.supabase.from("leads").select("*").eq("id", id).single();
   if (!lead) notFound();
 
-  const [{ data: stages }, { data: events }, { data: tasks }] = await Promise.all([
+  const [{ data: stages }, { data: events }, { data: tasks }, { data: messages }] = await Promise.all([
     ctx.supabase.from("pipeline_stages").select("id, name").eq("clinic_id", lead.clinic_id).order("position"),
     ctx.supabase.from("lead_events").select("id, type, description, created_at, author:profiles(full_name)").eq("lead_id", id).order("created_at", { ascending: false }),
     ctx.supabase.from("tasks").select("id, title, due_at, done").eq("lead_id", id).order("done").order("due_at"),
+    ctx.supabase.from("messages").select("id, direction, body, sent_at").eq("lead_id", id).order("sent_at").limit(300),
   ]);
+
+  const origin = [
+    { label: "Origem", value: sourceLabel[lead.source] ?? lead.source },
+    { label: "Anúncio (título)", value: lead.ad_headline },
+    { label: "ID do anúncio", value: lead.ad_id },
+    { label: "ID da campanha", value: lead.campaign_id },
+    { label: "Clique do anúncio (ctwa_clid)", value: lead.ctwa_clid ? "capturado" : null },
+    { label: "UTM source / medium", value: [lead.utm_source, lead.utm_medium].filter(Boolean).join(" / ") || null },
+    { label: "UTM campaign / content", value: [lead.utm_campaign, lead.utm_content].filter(Boolean).join(" / ") || null },
+    { label: "Página de entrada", value: lead.landing_page },
+  ].filter((o) => o.value);
 
   const stage = stages?.find((s) => s.id === lead.stage_id);
   const phoneDigits = (lead.phone ?? "").replace(/\D/g, "");
@@ -118,6 +130,38 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             <input id="due_at" name="due_at" type="datetime-local" className="input" />
             <button className="btn-ghost w-full">+ Adicionar</button>
           </form>
+        </section>
+      </div>
+
+      <div className="flex flex-wrap items-start gap-4">
+        <section aria-labelledby="origem" className="card flex flex-[1_1_300px] flex-col gap-2.5">
+          <h2 id="origem" className="text-base font-semibold">Origem do lead</h2>
+          {lead.score != null && (
+            <div className="flex items-center justify-between rounded-lg bg-black px-3 py-2.5 text-white">
+              <span className="text-sm">Lead score{lead.temperature ? ` · ${lead.temperature}` : ""}</span>
+              <span className="font-serif text-3xl">{lead.score}</span>
+            </div>
+          )}
+          {lead.score_reason && <p className="text-sm text-neutral-600">{lead.score_reason}</p>}
+          {origin.map((o) => (
+            <div key={o.label} className="flex justify-between gap-3 border-b border-neutral-100 pb-2 text-sm">
+              <span className="text-neutral-600">{o.label}</span>
+              <span className="text-right font-semibold break-all">{o.value}</span>
+            </div>
+          ))}
+        </section>
+
+        <section aria-labelledby="conversa" className="card flex flex-[2_1_420px] flex-col gap-3">
+          <h2 id="conversa" className="text-base font-semibold">Conversa no WhatsApp</h2>
+          {!messages?.length && <p className="text-sm text-neutral-500">Nenhuma mensagem ainda.</p>}
+          <div className="flex max-h-[520px] flex-col gap-2 overflow-y-auto">
+            {(messages ?? []).map((m) => (
+              <div key={m.id} className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${m.direction === "in" ? "self-start bg-neutral-100" : "self-end bg-black text-white"}`}>
+                <p className="whitespace-pre-wrap">{m.body}</p>
+                <p className={`mt-1 text-[11px] ${m.direction === "in" ? "text-neutral-500" : "text-neutral-300"}`}>{dateTime(m.sent_at)}</p>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </>

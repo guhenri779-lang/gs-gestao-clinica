@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getContext } from "@/lib/context";
 import { brl, duration, monthKey } from "@/lib/format";
-import { createClinic } from "@/lib/actions";
+import { createClinic, saveClinicIntegrations } from "@/lib/actions";
 import InviteForm from "./InviteForm";
 
 export default async function AgenciaPage() {
@@ -10,10 +10,11 @@ export default async function AgenciaPage() {
   if (!ctx.isAgency) redirect("/funil");
   const mk = monthKey();
 
-  const [{ data: stats }, { data: revs }, { data: members }] = await Promise.all([
+  const [{ data: stats }, { data: revs }, { data: members }, { data: integ }] = await Promise.all([
     ctx.supabase.from("clinic_month_stats").select("*").order("name"),
     ctx.supabase.from("clinic_monthly_revenue").select("clinic_id, revenue").eq("month", mk),
     ctx.supabase.from("clinic_members").select("clinic_id, role, user:profiles(full_name)"),
+    ctx.supabase.from("clinics").select("id, name, whatsapp_phone_number_id, whatsapp_waba_id, meta_dataset_id, qualified_score").order("name"),
   ]);
 
   const rows = (stats ?? []).map((s) => {
@@ -111,6 +112,26 @@ export default async function AgenciaPage() {
           ))}
         </section>
       </div>
+
+      <section aria-labelledby="integracoes" className="card flex flex-col gap-4">
+        <div>
+          <h2 id="integracoes" className="text-base font-semibold">Integrações por clínica</h2>
+          <p className="text-sm text-neutral-600">IDs da Meta (não são senhas). Os tokens ficam nas variáveis da Vercel.</p>
+        </div>
+        {(integ ?? []).map((c) => (
+          <form key={c.id} action={saveClinicIntegrations} className="grid grid-cols-1 gap-3 border-t border-neutral-100 pt-4 md:grid-cols-5">
+            <input type="hidden" name="clinic_id" value={c.id} />
+            <p className="self-center text-sm font-semibold md:col-span-5">{c.name}</p>
+            <div><label className="label" htmlFor={`pn-${c.id}`}>ID do número (WhatsApp)</label><input id={`pn-${c.id}`} name="whatsapp_phone_number_id" defaultValue={c.whatsapp_phone_number_id ?? ""} className="input" /></div>
+            <div><label className="label" htmlFor={`wa-${c.id}`}>ID da conta WhatsApp (WABA)</label><input id={`wa-${c.id}`} name="whatsapp_waba_id" defaultValue={c.whatsapp_waba_id ?? ""} className="input" /></div>
+            <div><label className="label" htmlFor={`ds-${c.id}`}>ID do conjunto de dados (Pixel)</label><input id={`ds-${c.id}`} name="meta_dataset_id" defaultValue={c.meta_dataset_id ?? ""} className="input" /></div>
+            <div><label className="label" htmlFor={`qs-${c.id}`}>Nota mínima de lead qualificado</label><input id={`qs-${c.id}`} name="qualified_score" inputMode="numeric" defaultValue={c.qualified_score ?? 60} className="input" /></div>
+            <button className="btn self-end">Salvar</button>
+          </form>
+        ))}
+        {!integ?.length && <p className="text-sm text-neutral-500">Cadastre uma clínica primeiro.</p>}
+        <p className="text-xs text-neutral-500">Endereço do webhook para configurar na Meta: <code className="rounded bg-neutral-100 px-1.5 py-0.5">/api/whatsapp/webhook</code> no domínio do app.</p>
+      </section>
     </>
   );
 }

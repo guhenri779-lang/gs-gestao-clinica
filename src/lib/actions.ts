@@ -197,3 +197,19 @@ export async function inviteUser(_: unknown, form: FormData) {
   revalidatePath("/agencia");
   return { ok: `Acesso criado para ${email}.` };
 }
+
+export async function saveClinicIntegrations(form: FormData) {
+  const ctx = await getContext();
+  if (!ctx.isAgency) return;
+  const clinicId = String(form.get("clinic_id"));
+  await ctx.supabase
+    .from("clinics")
+    .update({
+      whatsapp_phone_number_id: str(form.get("whatsapp_phone_number_id")),
+      whatsapp_waba_id: str(form.get("whatsapp_waba_id")),
+      meta_dataset_id: str(form.get("meta_dataset_id")),
+      qualified_score: num(form.get("qualified_score")) ?? 60,
+    })
+    .eq("id", clinicId);
+  revalidatePath("/agencia");
+}
