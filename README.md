@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GS Gestão Clínica
 
-## Getting Started
+CRM e gestão comercial para clínicas: funil, ficha do lead, painel de números, marketing e visão da agência.
+Stack: Next.js 15 + Supabase (banco, login e permissões) + Vercel (hospedagem).
 
-First, run the development server:
+## 1. Banco (Supabase)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Crie o projeto (região São Paulo).
+2. SQL Editor → New query → cole `supabase/schema.sql` → Run.
+3. Authentication → Users → Add user (seu e-mail e senha, marque "Auto confirm").
+4. No SQL Editor, rode (trocando o e-mail):
+
+```sql
+update profiles set is_agency = true where id = (select id from auth.users where email = 'SEU_EMAIL');
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 2. Variáveis de ambiente
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variável | Onde achar | Pública? |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL | Sim |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API → anon public | Sim |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → service_role | **Não. Só na Vercel.** |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 3. Publicar (Vercel)
 
-## Learn More
+1. Vercel → Add New → Project → importe o repositório `gs-gestao-clinica`.
+2. Em Environment Variables, cole as três variáveis acima.
+3. Deploy.
+4. Settings → Domains → adicione `app.seudominio.com.br` e crie no seu provedor de DNS o registro CNAME que a Vercel mostrar.
+5. No Supabase → Authentication → URL Configuration, coloque o domínio em Site URL.
 
-To learn more about Next.js, take a look at the following resources:
+## 4. Primeiro uso
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Entre com seu e-mail (perfil agência).
+2. Visão da agência → Nova clínica.
+3. Criar acesso → dono e secretária da clínica.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Perfis
 
-## Deploy on Vercel
+| Perfil | Vê |
+| --- | --- |
+| Secretária | Funil, leads, ficha, tarefas |
+| Dono | Tudo da própria clínica, incluindo painel e faturamento |
+| Agência | Todas as clínicas, painel, marketing e visão da agência |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Rodar localmente
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+cp .env.example .env.local   # preencha as variáveis
+npm install
+npm run dev
+```
