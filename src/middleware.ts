@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // webhooks externos (Meta) não têm sessão de usuário
-  if (request.nextUrl.pathname.startsWith("/api/")) return response;
+  if (request.nextUrl.pathname.startsWith("/api/") || request.nextUrl.pathname.startsWith("/empresa")) return response;
 
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   if (!user && !isLogin) {
