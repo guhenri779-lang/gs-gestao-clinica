@@ -7,7 +7,7 @@ const EMPRESA = {
   cnpj: "48.553.258/0001-41",
   endereco: "Av. da Uva, 295 – Poste, Jundiaí – SP, CEP 13213-235",
   telefone: "(11) 97509-2812",
-  email: "gustavo.anuncios.online2022@gmail.com",
+  email: "guhenri779@gmail.com",
   instagram: "https://www.instagram.com/guhsouza_23/",
 };
 
