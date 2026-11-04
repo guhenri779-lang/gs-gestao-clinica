@@ -1,14 +1,13 @@
 import { getContext, requireClinic } from "@/lib/context";
-import { brl, duration, monthStart } from "@/lib/format";
-import { createLead } from "@/lib/actions";
+import { brl, dayStart, duration, monthStart } from "@/lib/format";
+import NewLeadForm from "./NewLeadForm";
 import Kanban, { type KanbanLead, type Stage } from "./Kanban";
 
 export default async function FunilPage() {
   const ctx = await getContext();
   const clinic = requireClinic(ctx);
   const since = monthStart().toISOString();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = dayStart();
 
   const [{ data: stages }, { data: leads }, { data: tasks }] = await Promise.all([
     ctx.supabase.from("pipeline_stages").select("id, name, position, is_won, is_lost").eq("clinic_id", clinic.id).order("position"),
@@ -66,23 +65,7 @@ export default async function FunilPage() {
           <h1 className="title">Funil de vendas</h1>
           <p className="text-sm text-neutral-600">{clinic.name}{clinic.specialty ? ` · ${clinic.specialty}` : ""}</p>
         </div>
-        <details className="relative">
-          <summary className="btn list-none">+ Novo lead</summary>
-          <form action={createLead} className="card absolute right-0 z-10 mt-2 w-80 space-y-3 shadow-lg">
-            <div><label htmlFor="n" className="label">Nome</label><input id="n" name="name" required className="input" /></div>
-            <div><label htmlFor="p" className="label">WhatsApp</label><input id="p" name="phone" placeholder="(11) 9 0000-0000" className="input" /></div>
-            <div>
-              <label htmlFor="s" className="label">Origem</label>
-              <select id="s" name="source" className="input">
-                <option value="meta">Anúncio Meta</option><option value="organic">Orgânico</option>
-                <option value="referral">Indicação</option><option value="google">Google</option><option value="other">Outro</option>
-              </select>
-            </div>
-            <div><label htmlFor="pr" className="label">Procedimento de interesse</label><input id="pr" name="procedure" className="input" /></div>
-            <div><label htmlFor="c" className="label">Campanha (opcional)</label><input id="c" name="campaign" className="input" /></div>
-            <button className="btn w-full">Salvar lead</button>
-          </form>
-        </details>
+        <NewLeadForm />
       </header>
 
       <section aria-label="Resumo" className="grid grid-cols-2 gap-3 lg:grid-cols-4">

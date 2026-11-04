@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getContext, requireClinic } from "@/lib/context";
-import { brl, duration, monthStart, pct, periodStart, sourceLabel } from "@/lib/format";
+import { brl, duration, monthKey, pct, periodStart, sourceLabel } from "@/lib/format";
 import { saveMonthlyRevenue } from "@/lib/actions";
 import PeriodSelect from "@/components/PeriodSelect";
 
@@ -10,18 +10,20 @@ export default async function PainelPage({ searchParams }: { searchParams: Promi
   if (!ctx.canFinance) redirect("/funil");
   const clinic = requireClinic(ctx);
   const since = periodStart(p).toISOString();
-  const month = monthStart();
-  const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-01`;
+  const mk = monthKey();
 
   const [{ data: leads }, { data: spend }, { data: rev }] = await Promise.all([
     ctx.supabase.from("leads").select("source, created_at, scheduled_at, closed_at, closed_value, first_response_seconds, stage:pipeline_stages(name, position)").eq("clinic_id", clinic.id).gte("created_at", since),
     ctx.supabase.from("ad_spend").select("spend").eq("clinic_id", clinic.id).gte("date", since.slice(0, 10)),
-    ctx.supabase.from("clinic_monthly_revenue").select("revenue").eq("clinic_id", clinic.id).eq("month", monthKey).maybeSingle(),
+    ctx.supabase.from("clinic_monthly_revenue").select("revenue").eq("clinic_id", clinic.id).eq("month", mk).maybeSingle(),
   ]);
 
   const L = leads ?? [];
-  const scheduled = L.filter((l) => l.scheduled_at).length;
-  const attended = L.filter((l) => ((l.stage as unknown as { position: number } | null)?.position ?? 0) >= 4 || l.closed_at).length;
+  // funil cumulativo: quem chegou a uma etapa mais à frente também conta nas anteriores
+  const pos = (l: (typeof L)[number]) => (l.stage as unknown as { position: number } | null)?.position ?? 0;
+  const reached = (l: (typeof L)[number], p: number) => pos(l) >= p && pos(l) !== 7; // 7 = Perdido
+  const scheduled = L.filter((l) => l.scheduled_at || reached(l, 3) || l.closed_at).length;
+  const attended = L.filter((l) => reached(l, 4) || l.closed_at).length;
   const closed = L.filter((l) => l.closed_at);
   const revenue = closed.reduce((s, l) => s + (l.closed_value ?? 0), 0);
   const invest = (spend ?? []).reduce((s, r) => s + Number(r.spend), 0);
@@ -51,7 +53,7 @@ export default async function PainelPage({ searchParams }: { searchParams: Promi
       return {
         name: sourceLabel[k],
         leads: ls.length,
-        sched: ls.filter((l) => l.scheduled_at).length,
+        sched: ls.filter((l) => l.scheduled_at || reached(l, 3) || l.closed_at).length,
         closed: ls.filter((l) => l.closed_at).length,
         revenue: ls.reduce((s, l) => s + (l.closed_at ? l.closed_value ?? 0 : 0), 0),
       };
@@ -105,7 +107,7 @@ export default async function PainelPage({ searchParams }: { searchParams: Promi
             <span className="text-neutral-300">Média base (3 meses antes)</span><span className="font-semibold">{brl(baseline)}</span>
           </div>
           <form action={saveMonthlyRevenue} className="flex items-end gap-2 border-b border-neutral-800 pb-3">
-            <input type="hidden" name="month" value={monthKey} />
+            <input type="hidden" name="month" value={mk} />
             <div className="flex-1">
               <label htmlFor="revenue" className="text-sm text-neutral-300">Faturamento total da clínica no mês</label>
               <input id="revenue" name="revenue" inputMode="decimal" defaultValue={monthRevenue ?? ""} placeholder="Informe o valor" className="input mt-1 text-black" />

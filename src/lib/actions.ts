@@ -5,11 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "./supabase/server";
 import { getContext, requireClinic } from "./context";
+import { fromLocalInput, parseMoney } from "./format";
 
-const num = (v: FormDataEntryValue | null) => {
-  const s = String(v ?? "").replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
-  return s === "" ? null : Number(s);
-};
+const num = (v: FormDataEntryValue | null) => parseMoney(v == null ? null : String(v));
 const str = (v: FormDataEntryValue | null) => {
   const s = String(v ?? "").trim();
   return s === "" ? null : s;
@@ -85,7 +83,7 @@ export async function updateLead(leadId: string, form: FormData) {
       closed_value: num(form.get("closed_value")),
       lost_reason: str(form.get("lost_reason")),
       notes: str(form.get("notes")),
-      scheduled_at: scheduled ? new Date(scheduled).toISOString() : null,
+      scheduled_at: fromLocalInput(scheduled),
       stage_id: str(form.get("stage_id")),
     })
     .eq("id", leadId);
@@ -118,7 +116,7 @@ export async function addTask(leadId: string, clinicId: string, form: FormData) 
     lead_id: leadId,
     clinic_id: clinicId,
     title,
-    due_at: due ? new Date(due).toISOString() : null,
+    due_at: fromLocalInput(due),
     assigned_to: ctx.user.id,
   });
   revalidatePath(`/leads/${leadId}`);

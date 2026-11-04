@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getContext } from "@/lib/context";
-import { brl, duration, monthStart } from "@/lib/format";
+import { brl, duration, monthKey } from "@/lib/format";
 import { createClinic } from "@/lib/actions";
 import InviteForm from "./InviteForm";
 
 export default async function AgenciaPage() {
   const ctx = await getContext();
   if (!ctx.isAgency) redirect("/funil");
-  const m = monthStart();
-  const monthKey = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}-01`;
+  const mk = monthKey();
 
   const [{ data: stats }, { data: revs }, { data: members }] = await Promise.all([
     ctx.supabase.from("clinic_month_stats").select("*").order("name"),
-    ctx.supabase.from("clinic_monthly_revenue").select("clinic_id, revenue").eq("month", monthKey),
+    ctx.supabase.from("clinic_monthly_revenue").select("clinic_id, revenue").eq("month", mk),
     ctx.supabase.from("clinic_members").select("clinic_id, role, user:profiles(full_name)"),
   ]);
 

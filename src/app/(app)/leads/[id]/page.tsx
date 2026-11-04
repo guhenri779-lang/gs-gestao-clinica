@@ -2,14 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContext } from "@/lib/context";
 import { addEvent, addTask, toggleTask, updateLead } from "@/lib/actions";
-import { dateTime, sourceLabel } from "@/lib/format";
-
-const toLocalInput = (iso: string | null) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const off = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - off).toISOString().slice(0, 16);
-};
+import { dateTime, eventText, sourceLabel, toLocalInput } from "@/lib/format";
 
 export default async function LeadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -73,8 +66,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           </div>
           <div><label className="label" htmlFor="scheduled_at">Avaliação agendada</label><input id="scheduled_at" name="scheduled_at" type="datetime-local" defaultValue={toLocalInput(lead.scheduled_at)} className="input" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label" htmlFor="quote_value">Orçamento (R$)</label><input id="quote_value" name="quote_value" inputMode="decimal" defaultValue={lead.quote_value ?? ""} className="input" /></div>
-            <div><label className="label" htmlFor="closed_value">Valor fechado (R$)</label><input id="closed_value" name="closed_value" inputMode="decimal" defaultValue={lead.closed_value ?? ""} className="input" /></div>
+            <div><label className="label" htmlFor="quote_value">Orçamento (R$)</label><input id="quote_value" name="quote_value" inputMode="decimal" defaultValue={lead.quote_value != null ? String(lead.quote_value).replace(".", ",") : ""} className="input" /></div>
+            <div><label className="label" htmlFor="closed_value">Valor fechado (R$)</label><input id="closed_value" name="closed_value" inputMode="decimal" defaultValue={lead.closed_value != null ? String(lead.closed_value).replace(".", ",") : ""} className="input" /></div>
           </div>
           <div><label className="label" htmlFor="lost_reason">Motivo de perda</label><input id="lost_reason" name="lost_reason" defaultValue={lead.lost_reason ?? ""} className="input" /></div>
           <div><label className="label" htmlFor="notes">Anotações</label><textarea id="notes" name="notes" rows={4} defaultValue={lead.notes ?? ""} className="input" /></div>
@@ -96,7 +89,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                   <span className="min-h-9 w-0.5 flex-1 bg-neutral-200" />
                 </div>
                 <div className="pb-3.5">
-                  <p className="text-sm font-semibold">{ev.description}</p>
+                  <p className="text-sm font-semibold">{eventText(ev.description)}</p>
                   <p className="text-xs text-neutral-500">
                     {dateTime(ev.created_at)}
                     {(ev.author as unknown as { full_name: string | null } | null)?.full_name ? ` · ${(ev.author as unknown as { full_name: string }).full_name}` : ""}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getContext, requireClinic } from "@/lib/context";
-import { brl, periodStart } from "@/lib/format";
+import { brl, periodStart, plural } from "@/lib/format";
 import { addAdSpend } from "@/lib/actions";
 import PeriodSelect from "@/components/PeriodSelect";
 
@@ -53,7 +53,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
     { label: "Custo por paciente", value: brl(div(T.spend, T.closed)) },
     { label: "ROAS real (CRM)", value: roas(T) },
   ];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
 
   return (
     <>
@@ -107,7 +107,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
               <span className="w-7 font-serif text-3xl">{i + 1}</span>
               <span className="min-w-0 flex-1 text-sm font-semibold">{c.name}</span>
               <div className="text-right">
-                <p className="text-sm font-bold">{c.closed} pacientes</p>
+                <p className="text-sm font-bold">{plural(c.closed, "paciente", "pacientes")}</p>
                 <p className="text-xs text-neutral-600">{brl(div(c.spend, c.closed))} por paciente</p>
               </div>
             </div>
